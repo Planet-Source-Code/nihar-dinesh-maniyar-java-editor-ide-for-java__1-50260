@@ -1,0 +1,99 @@
+Visual Basic FAQ
+Determining the End of a Shelled Application Using GetExitCodeProcess 
+      
+Posted:   Thursday December 26, 1996 
+Updated:   Tuesday August 06, 2002 
+      
+Applies to:   VB4-32, VB5, VB6 
+      
+Related:  
+ Determining the End of a Shelled Application Using GetExitCodeProcess
+Determining the End of a New Process Using WaitForSingleObject
+Determining the End of a Shelled Application Using WaitForSingleObject 
+      
+ Prerequisites 
+None. 
+
+--------------------------------------------------------------------------------
+ 
+In a Visual Basic application, once a call to the VB Shell( ) function has been made, program execution continues on immediately. However, there are times when it may be desirable or necessary to wait for the shelled application to close before continuing. By utilizing the OpenProcess and GetExitCodeProcess APIs under Win32, the  procedure below will 'hold' the application in a Do...Loop loop, checking for the shelled app's termination. 
+Thanks go out to Santiago Holgado for locating the proper "active status flag" for the routine.
+ 
+ 
+ BAS Module Code 
+None. 
+
+--------------------------------------------------------------------------------
+ 
+ 
+ 
+ Form Code 
+  
+Add a command button to a form along with the following code: 
+
+--------------------------------------------------------------------------------
+ 
+Option Explicit
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' Copyright ©1996-2003 VBnet, Randy Birch, All Rights Reserved.
+' Some pages may also contain other copyrights by the author.
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' Distribution: You can freely use this code in your own
+'               applications, but you may not reproduce 
+'               or publish this code on any web site,
+'               online service, or distribute as source 
+'               on any media without express permission.
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Private Declare Function OpenProcess Lib "kernel32" _
+  (ByVal dwDesiredAccess As Long, _
+   ByVal bInheritHandle As Long, _
+   ByVal dwProcessId As Long) As Long
+
+Private Declare Function GetExitCodeProcess Lib "kernel32" _
+  (ByVal hProcess As Long, lpExitCode As Long) As Long
+
+Private Declare Function CloseHandle Lib "kernel32" _
+  (ByVal hObject As Long) As Long
+
+Private Const PROCESS_QUERY_INFORMATION = &H400
+Private Const STATUS_PENDING = &H103&
+
+
+Private Sub Command1_Click()
+
+   RunShell "c:\windows\notepad.exe"
+End Sub
+
+
+Private Sub RunShell(cmdline As String)
+
+    Dim hProcess As Long
+    Dim ProcessId As Long
+    Dim exitCode As Long
+
+    ProcessId = Shell(cmdline, 1)
+    hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, False, ProcessId)
+
+    Do
+
+        Call GetExitCodeProcess(hProcess, exitCode)
+        DoEvents
+   
+    Loop While exitCode = STATUS_PENDING
+
+    Call CloseHandle(hProcess)
+
+    MsgBox "The shelled process " & cmdline & " has ended."
+
+End Sub
+
+'--end block--'
+ 
+ 
+ Comments 
+Run the app, and click the command button. Notepad will launch, and only when closed will the message box will appear. 
+During the loop, it is imperative that a DoEvents statement be used. The DoEvents statement relinquishes your application's control
+to allow Windows to process any pending messages or events for your app or any other running process. Without this, your application (and Windows 3) will appear to lock up as the While...Wend loop essentially 'grabs control' of the system. To demonstrate this, comment-out the DoEvents line, and  run the app. Once Notepad starts, the system will appear to lock up. You will need to press CTRL + Break to stop the routine and regain system control.
+
+Win32 APIs are not available under 16 bit Visual Basic. For details on waiting for a shelled app using VB2/3 or 4-16 bit, see Using GetModuleUsage to Determine when a Shelled Program has Finished.
+ 
