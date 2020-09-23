@@ -1,0 +1,87 @@
+ 
+Visual Basic FAQ
+Determining the End of a Shelled Application Using WaitForSingleObject 
+      
+Posted:   Thursday December 26, 1996 
+Updated:   Monday February 10, 2003 
+      
+Applies to:   VB4-32, VB5, VB6 
+      
+Related:  
+ Determining the End of a Shelled Application Using GetExitCodeProcess
+Determining the End of a New Process Using WaitForSingleObject
+Determining the End of a Shelled Application Using WaitForSingleObject 
+      
+ Prerequisites 
+None. 
+
+--------------------------------------------------------------------------------
+ 
+This is a variation on the documented WaitForSingleObject method. 
+In Determining the End of a New Process Using WaitForSingleObject, the shelled process was started not with the Shell() command but rather with the CreateProcess API. Although CreateProcess is extremely functional, developers wanting to use the Shell method and wanting to avoid the need to run a loop (as in Determining the End of a Shelled Application Using GetExitCodeProcess) can use this technique instead. Its disadvantage over the GetExitCodeProcess method is that, during the wait period, the VB application is totally unresponsive.  This includes not processing screen updates (i.e. if a portion of the app is covered/uncovered), nor does it allow any means to move the form or minimize the window.
+
+The return value to a successful Shell() call is an application task ID - a unique number that identifies the running program. This value can be passed to the OpenProcess API to return a handle to the process (hProcess). This value is the same as the hProcess member of the PROCESS_INFORMATION structure used in a call to CreateProcess, and the same value handed to WaitForSingleObject to suspend execution pending completion of the shelled app. This demo then uses Shell, OpenProcess and WaitForSingleObject to start an app and to wait for the Shelled application to close before code execution continues.
+ 
+ 
+ BAS Module Code 
+None. 
+
+--------------------------------------------------------------------------------
+ 
+ 
+ 
+ Form Code 
+  
+Add a command button to a form along with the following code: 
+
+--------------------------------------------------------------------------------
+ 
+Option Explicit
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' Copyright ©1996-2003 VBnet, Randy Birch, All Rights Reserved.
+' Some pages may also contain other copyrights by the author.
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' Distribution: You can freely use this code in your own
+'               applications, but you may not reproduce 
+'               or publish this code on any web site,
+'               online service, or distribute as source 
+'               on any media without express permission.
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Private Const WAIT_INFINITE = -1&
+Private Const SYNCHRONIZE = &H100000
+
+Private Declare Function OpenProcess Lib "kernel32" _
+  (ByVal dwDesiredAccess As Long, _
+   ByVal bInheritHandle As Long, _
+   ByVal dwProcessId As Long) As Long
+   
+Private Declare Function WaitForSingleObject Lib "kernel32" _
+  (ByVal hHandle As Long, _
+   ByVal dwMilliseconds As Long) As Long
+   
+Private Declare Function CloseHandle Lib "kernel32" _
+  (ByVal hObject As Long) As Long   
+
+
+Private Sub Command1_Click()
+
+   Dim hProcess As Long
+   Dim taskId As Long
+   Dim cmdline As String
+   
+   cmdline = "notepad.exe"
+   taskId = Shell(cmdline, vbNormalFocus)
+   
+   hProcess = OpenProcess(SYNCHRONIZE, True, taskId)
+   Call WaitForSingleObject(hProcess, WAIT_INFINITE)
+   CloseHandle hProcess
+   
+   MsgBox "The shelled app has ended."
+
+End Sub
+
+'--end block--'
+ 
+ 
+ Comments 
+Run the app, and click the command button. Notepad will launch and, when closed, the message box will appear. 
